@@ -1,7 +1,9 @@
 package com.crud.webflux.demowebflux.handler;
 
+import com.crud.webflux.demowebflux.dto.ProductoDTO;
 import com.crud.webflux.demowebflux.entity.Product;
 import com.crud.webflux.demowebflux.service.ProductService;
+import com.crud.webflux.demowebflux.validation.ObjectValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -17,6 +19,7 @@ import reactor.core.publisher.Mono;
 public class ProductHandler {
 
     private final ProductService productService;
+    private final ObjectValidator validator;
 
     public Mono<ServerResponse> getAll(ServerRequest request) {
         Flux<Product> products = productService.getAll();
@@ -34,8 +37,8 @@ public class ProductHandler {
     }
 
     public Mono<ServerResponse> save(ServerRequest request){
-        Mono<Product> product = request.bodyToMono(Product.class);
-        return product.flatMap(p -> ServerResponse.ok()
+        Mono<ProductoDTO> dtoMono = request.bodyToMono(ProductoDTO.class).doOnNext(validator::validate);
+        return dtoMono.flatMap(p -> ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(productService.save(p), Product.class));
     }
@@ -49,7 +52,7 @@ public class ProductHandler {
 
     public Mono<ServerResponse> update(ServerRequest request){
         Long id = Long.valueOf(request.pathVariable("id"));
-        Mono<Product> product = request.bodyToMono(Product.class);
+        Mono<ProductoDTO> product = request.bodyToMono(ProductoDTO.class).doOnNext(validator::validate);
         return product.flatMap(p -> ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(productService.update(id, p), Product.class));

@@ -1,5 +1,6 @@
 package com.crud.webflux.demowebflux.service;
 
+import com.crud.webflux.demowebflux.dto.ProductoDTO;
 import com.crud.webflux.demowebflux.entity.Product;
 import com.crud.webflux.demowebflux.exception.CustomException;
 import com.crud.webflux.demowebflux.repository.ProductRepository;
@@ -29,11 +30,14 @@ public class ProductService {
                 .switchIfEmpty(Mono.error(new RuntimeException("Product not found")));
     }
 
-    public Mono<Product> save(Product product) {
-        Mono<Boolean> existsName = productRepository.findByName(product.getName()).hasElement();
+    public Mono<Product> save(ProductoDTO dto) {
+        Mono<Boolean> existsName = productRepository.findByName(dto.getName()).hasElement();
         return existsName.flatMap(exists -> exists
-                ? Mono.error(new CustomException( HttpStatus.BAD_REQUEST, PRODUCT_ALREADY_EXISTS))
-                : productRepository.save(product));
+                ? Mono.error(new CustomException(HttpStatus.BAD_REQUEST, PRODUCT_ALREADY_EXISTS))
+                : productRepository.save(Product.builder()
+                .name(dto.getName())
+                .price(dto.getPrice())
+                .build()));
     }
 
     public Mono<Void> delete(Long id) {
@@ -43,13 +47,16 @@ public class ProductService {
                 : Mono.error(new CustomException(HttpStatus.NOT_FOUND, PRODUCT_NOT_FOUND)));
     }
 
-    public Mono<Product> update(Long id, Product product) {
+    public Mono<Product> update(Long id, ProductoDTO dto) {
         Mono<Boolean> productExists = productRepository.findById(id).hasElement();
-        Mono<Boolean> productRepeatedName = productRepository.repeateName(id, product.getName()).hasElement();
+        Mono<Boolean> productRepeatedName = productRepository.repeateName(id, dto.getName()).hasElement();
         return productExists.flatMap(exists -> exists
                 ? productRepeatedName.flatMap(repeated -> repeated
                 ? Mono.error(new CustomException(HttpStatus.BAD_REQUEST, PRODUCT_ALREADY_EXISTS))
-                : productRepository.save(new Product(id, product.getName(), product.getPrice())))
+                : productRepository.save(Product.builder()
+                .name(dto.getName())
+                .price(dto.getPrice())
+                .build()))
                 : Mono.error(new CustomException(HttpStatus.NOT_FOUND, PRODUCT_NOT_FOUND)));
     }
 }
