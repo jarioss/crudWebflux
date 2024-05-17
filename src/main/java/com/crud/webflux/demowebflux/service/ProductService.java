@@ -20,24 +20,32 @@ public class ProductService {
     }
 
     public Mono<Product> getById(Long id) {
-        return productRepository.findById(id);
+        return productRepository.findById(id)
+                .switchIfEmpty(Mono.error(new RuntimeException("Product not found")));
     }
 
     public Mono<Product> save(Product product) {
-        return productRepository.save(product);
+        Mono<Boolean> existsName = productRepository.findByName(product.getName()).hasElement();
+        return existsName.flatMap(exists -> exists
+                ? Mono.error(new Exception("Product already exists"))
+                : productRepository.save(product));
     }
 
     public Mono<Void> delete(Long id) {
-        return productRepository.deleteById(id);
+        Mono<Boolean> exists = productRepository.findById(id).hasElement();
+        return exists.flatMap(exist -> exist
+                ? productRepository.deleteById(id)
+                : Mono.error(new Exception("Product not found")));
     }
 
     public Mono<Product> update(Long id, Product product) {
-        return productRepository.findById(id)
-                .flatMap(p -> {
-                    p.setName(product.getName());
-                    p.setPrice(product.getPrice());
-                    return productRepository.save(p);
-                });
+        Mono<Boolean> productExists = productRepository.findById(id).hasElement();
+        Mono<Boolean> productRepeatedName = productRepository.repeateName(id, product.getName()).hasElement();
+        return productExists.flatMap(exists -> exists
+                ? productRepeatedName.flatMap(repeated -> repeated
+                ? Mono.error(new Exception("Product already exists"))
+                : productRepository.save(new Product(id, product.getName(), product.getPrice())))
+                : Mono.error(new Exception("Product not found")));
     }
 
 
