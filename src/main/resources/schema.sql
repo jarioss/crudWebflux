@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS product (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `name` VARCHAR(255) NOT NULL,
+    price FLOAT NOT NULL,
+    PRIMARY KEY(id),
+    UNIQUE KEY name_unique (`name`)
+) ENGINE=InnoDB;
